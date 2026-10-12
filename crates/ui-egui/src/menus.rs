@@ -282,7 +282,7 @@ pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params:
     }
     if let Some(r) = crate::panels::multicam::route(app, id, &params) {
         if let Err(e) = &r {
-            app.ui.status = e.clone();
+            app.ui.status = crate::i18n::error_message(e);
         }
         return r;
     }
@@ -297,25 +297,25 @@ pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params:
     }
     if let Some(r) = crate::panels::graphics_templates::route(app, ctx, id, &params) {
         if let Err(e) = &r {
-            app.ui.status = e.clone();
+            app.ui.status = crate::i18n::error_message(e);
         }
         return r;
     }
     if let Some(r) = crate::panels::menu_dialogs::route(app, ctx, id, &params) {
         if let Err(e) = &r {
-            app.ui.status = e.clone();
+            app.ui.status = crate::i18n::error_message(e);
         }
         return r;
     }
     if let Some(r) = crate::panels::media_dialogs::route(app, id, &params) {
         if let Err(e) = &r {
-            app.ui.status = e.clone();
+            app.ui.status = crate::i18n::error_message(e);
         }
         return r;
     }
     if let Some(r) = crate::panels::monitor_view::route(app, id, &params) {
         if let Err(e) = &r {
-            app.ui.status = e.clone();
+            app.ui.status = crate::i18n::error_message(e);
         }
         return r;
     }
@@ -524,7 +524,7 @@ pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params:
         "file.newBin" if params.get("name").is_none() => {
             let r = crate::panels::project::new_bin(app, &params);
             if let Err(e) = &r {
-                app.ui.status = e.clone();
+                app.ui.status = crate::i18n::error_message(e);
             }
             return r;
         }
@@ -581,7 +581,7 @@ pub fn invoke(app: &mut FilmcraftApp, ctx: &egui::Context, id: &str, mut params:
     }
     let r = app.session.execute(id, params).map_err(|e| e.to_string());
     if let Err(e) = &r {
-        app.ui.status = e.clone();
+        app.ui.status = crate::i18n::error_message(e);
     }
     if r.is_ok() && matches!(id, "edit.copy" | "edit.cut") {
         remember_stale_clipboard_media(app);

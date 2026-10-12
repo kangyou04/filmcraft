@@ -217,7 +217,43 @@ pub fn t(text: &str) -> &str {
 
 /// Match a lowercased search query against both the source and the displayed label.
 pub fn matches_query(text: &str, query: &str) -> bool {
-    text.to_lowercase().contains(query) || t(text).to_lowercase().contains(query)
+    let source = text.to_lowercase();
+    source.contains(query)
+        || t(text).to_lowercase().contains(query)
+        || (current() == Language::Ko
+            && [("blur", &["블러", "흐림"][..]), ("shadow", &["그림자", "쉐도우"][..]), ("stroke", &["테두리", "외곽선"][..])].iter().any(|(name, aliases)| {
+                (if *name == "stroke" { source == "stroke" || source == "stroke 2" } else { source.contains(name) })
+                    && aliases.iter().any(|alias| alias.contains(query))
+            }))
+}
+
+/// Korean guidance for common engine failures; retain the original diagnostic and API errors.
+pub fn error_message(error: &str) -> String {
+    if current() != Language::Ko {
+        return error.to_string();
+    }
+    let lower = error.to_lowercase();
+    let detail = lower.strip_prefix("media: ").unwrap_or(&lower);
+    let guidance = if ["no active sequence", "no sequence is open", "no such sequence"].iter().any(|reason| detail.ends_with(reason)) {
+        "열린 시퀀스가 없습니다. 시퀀스를 만들거나 기존 시퀀스를 연 뒤 다시 시도하세요."
+    } else if ["no clips selected", "nothing selected"].iter().any(|reason| detail.ends_with(reason)) {
+        "선택한 항목이 없습니다. 작업할 클립이나 항목을 먼저 선택하세요."
+    } else if detail.starts_with("media offline:") {
+        "원본 미디어를 찾을 수 없습니다. 파일 위치와 연결된 드라이브를 확인하고 미디어를 다시 연결하세요."
+    } else if detail.starts_with("unsupported media:") || detail.starts_with("unsupported:") {
+        "지원하지 않는 형식이나 설정입니다. 아래 상세 내용을 확인하고 지원되는 형식이나 설정으로 다시 시도하세요."
+    } else if detail.starts_with("decode error:") {
+        "미디어를 해석하지 못했습니다. 원본 파일이 정상적으로 재생되는지와 지원되는 형식인지 확인하세요."
+    } else if detail.starts_with("encode:") {
+        "영상 또는 오디오 인코딩에 실패했습니다. 아래 상세 내용을 확인하고 내보내기 설정을 점검하세요."
+    } else if detail.starts_with("i/o:") || detail.starts_with("i/o error:") {
+        "파일을 읽거나 쓰지 못했습니다. 파일 위치, 폴더 권한과 남은 저장 공간을 확인하세요."
+    } else if detail == "cancelled" {
+        "작업이 취소되었습니다."
+    } else {
+        "작업을 완료하지 못했습니다. 아래 상세 내용을 확인하세요."
+    };
+    format!("{guidance} (상세: {error})")
 }
 
 /// Like [`t`], for an English string that needs a disambiguating `context` (a catalog row whose
