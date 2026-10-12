@@ -53,7 +53,7 @@ args = ['mcp', '--bridge', '127.0.0.1:9877']
 - 편집 결과나 엔진의 오류 판정은 변경하지 않았습니다.
 - 별도 배포 조건에 따라 ArtCraft 상표 로고 및 이를 표시하는 코드를 제거했습니다.
 - 정보 창에 비공식 미리보기와 원 작업자의 출처를 표시합니다.
-- 번역 개선 PR은 유지되며, 이 배포용 수정은 별도 `release/korean-preview-20261013` 브랜치에 있습니다.
+- 번역 개선 PR은 유지되며, 이 배포용 수정은 별도 `release-korean-preview-20261013` 브랜치에 있습니다.
 
 MIT 또는 Apache-2.0 라이선스로 배포합니다. 원 제작진과 기존 번역자의 저작권 및 기여를 유지합니다.
 ZIP의 `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`, `ATTRIBUTION.md`와 폰트 라이선스를 참고하세요.
@@ -61,7 +61,7 @@ ZIP의 `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`, `ATTRIBUTION.md`와 폰트 라
 
 ## 같은 소스에서 빌드하기
 
-`release/korean-preview-20261013` 브랜치에서 Windows MSVC용 Rust와 Microsoft 빌드 도구를 사용합니다.
+`release-korean-preview-20261013` 브랜치에서 Windows MSVC용 Rust와 Microsoft 빌드 도구를 사용합니다.
 PowerShell에서 아래 환경 변수를 설정한 뒤 빌드합니다. 새 Rust 패키지는 추가하지 않습니다.
 
 ```powershell
