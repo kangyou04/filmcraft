@@ -46,6 +46,10 @@ pub enum Language {
     Ru,
     Fr,
     Id,
+    /// Traditional Chinese (Taiwan), persisted as `zh-tw`.
+    #[serde(rename = "zh-tw")]
+    ZhTw,
+    Ko,
 }
 
 static JAPANESE: OnceLock<Catalog> = OnceLock::new();
@@ -57,9 +61,11 @@ static GERMAN: OnceLock<Catalog> = OnceLock::new();
 static RUSSIAN: OnceLock<Catalog> = OnceLock::new();
 static FRENCH: OnceLock<Catalog> = OnceLock::new();
 static INDONESIAN: OnceLock<Catalog> = OnceLock::new();
+static TRADITIONAL_CHINESE: OnceLock<Catalog> = OnceLock::new();
+static KOREAN: OnceLock<Catalog> = OnceLock::new();
 
 impl Language {
-    pub const ALL: [Self; 10] = [Self::En, Self::Ja, Self::Es, Self::PtBr, Self::Uk, Self::ZhCn, Self::De, Self::Ru, Self::Fr, Self::Id];
+    pub const ALL: [Self; 12] = [Self::En, Self::Ja, Self::Es, Self::PtBr, Self::Uk, Self::ZhCn, Self::De, Self::Ru, Self::Fr, Self::Id, Self::ZhTw, Self::Ko];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -73,6 +79,8 @@ impl Language {
             Self::Ru => "Русский",
             Self::Fr => "Français",
             Self::Id => "Bahasa Indonesia",
+            Self::ZhTw => "繁體中文（台灣）",
+            Self::Ko => "한국어",
         }
     }
 
@@ -88,6 +96,8 @@ impl Language {
             "ru" => Some(Self::Ru),
             "fr" => Some(Self::Fr),
             "id" => Some(Self::Id),
+            "zh-tw" => Some(Self::ZhTw),
+            "ko" => Some(Self::Ko),
             _ => None,
         }
     }
@@ -97,9 +107,9 @@ impl Language {
     /// interface has, else English. Any Portuguese gets the Brazilian catalog, the only one there is;
     /// any German (`de-AT`, `de_CH.UTF-8`…) gets the German one and any French (`fr-CA`, `fr_BE.UTF-8`…)
     /// the French one; any Indonesian (`id-ID`, `id_ID.UTF-8`, and the legacy `in-ID` that older Java
-    /// and Android runtimes report) the Indonesian one. Chinese gets the Simplified catalog
-    /// only for Simplified locales (`zh`, `zh-CN`, `zh-SG`, `zh-Hans…`); Traditional ones (`zh-TW`,
-    /// `zh-HK`, `zh-MO`, `zh-Hant…`) are skipped.
+    /// and Android runtimes report) the Indonesian one. Chinese gets the Simplified catalog for
+    /// Simplified locales (`zh`, `zh-CN`, `zh-SG`, `zh-Hans…`); native builds also recognize Traditional
+    /// locales (`zh-TW`, `zh-HK`, `zh-MO`, `zh-Hant…`) and Korean (`ko`).
     pub fn from_locales(tags: &[String]) -> Self {
         const PRIMARY: [(&str, Language); 10] = [
             ("en", Language::En),
@@ -122,7 +132,14 @@ impl Language {
                     let rest = tag.get(primary.len()..).unwrap_or_default();
                     let sub = if rest.starts_with(['-', '_']) { parts.next().unwrap_or_default() } else { "" };
                     let simplified = sub.is_empty() || ["cn", "sg", "hans"].iter().any(|s| sub.eq_ignore_ascii_case(s));
-                    return simplified.then_some(Language::ZhCn);
+                    if simplified {
+                        return Some(Language::ZhCn);
+                    }
+                    let traditional = ["tw", "hk", "mo", "hant"].iter().any(|s| sub.eq_ignore_ascii_case(s));
+                    return (traditional && !cfg!(target_arch = "wasm32")).then_some(Language::ZhTw);
+                }
+                if primary.eq_ignore_ascii_case("ko") && !cfg!(target_arch = "wasm32") {
+                    return Some(Language::Ko);
                 }
                 PRIMARY.iter().find(|(code, _)| primary.eq_ignore_ascii_case(code)).map(|(_, l)| *l)
             })
@@ -142,6 +159,8 @@ impl Language {
             Self::Ru => "ru",
             Self::Fr => "fr",
             Self::Id => "id",
+            Self::ZhTw => "zh-tw",
+            Self::Ko => "ko",
         }
     }
 
@@ -158,6 +177,8 @@ impl Language {
             Self::Ru => Some(RUSSIAN.get_or_init(|| Catalog::parse(include_str!("ru.tsv")))),
             Self::Fr => Some(FRENCH.get_or_init(|| Catalog::parse(include_str!("fr.tsv")))),
             Self::Id => Some(INDONESIAN.get_or_init(|| Catalog::parse(include_str!("id.tsv")))),
+            Self::ZhTw => Some(TRADITIONAL_CHINESE.get_or_init(|| Catalog::parse(include_str!("zh-tw.tsv")))),
+            Self::Ko => Some(KOREAN.get_or_init(|| Catalog::parse(include_str!("ko.tsv")))),
         }
     }
 
@@ -196,7 +217,43 @@ pub fn t(text: &str) -> &str {
 
 /// Match a lowercased search query against both the source and the displayed label.
 pub fn matches_query(text: &str, query: &str) -> bool {
-    text.to_lowercase().contains(query) || t(text).to_lowercase().contains(query)
+    let source = text.to_lowercase();
+    source.contains(query)
+        || t(text).to_lowercase().contains(query)
+        || (current() == Language::Ko
+            && [("blur", &["블러", "흐림"][..]), ("shadow", &["그림자", "쉐도우"][..]), ("stroke", &["테두리", "외곽선"][..])].iter().any(|(name, aliases)| {
+                (if *name == "stroke" { source == "stroke" || source == "stroke 2" } else { source.contains(name) })
+                    && aliases.iter().any(|alias| alias.contains(query))
+            }))
+}
+
+/// Korean guidance for common engine failures; retain the original diagnostic and API errors.
+pub fn error_message(error: &str) -> String {
+    if current() != Language::Ko {
+        return error.to_string();
+    }
+    let lower = error.to_lowercase();
+    let detail = lower.strip_prefix("media: ").unwrap_or(&lower);
+    let guidance = if ["no active sequence", "no sequence is open", "no such sequence"].iter().any(|reason| detail.ends_with(reason)) {
+        "열린 시퀀스가 없습니다. 시퀀스를 만들거나 기존 시퀀스를 연 뒤 다시 시도하세요."
+    } else if ["no clips selected", "nothing selected"].iter().any(|reason| detail.ends_with(reason)) {
+        "선택한 항목이 없습니다. 작업할 클립이나 항목을 먼저 선택하세요."
+    } else if detail.starts_with("media offline:") {
+        "원본 미디어를 찾을 수 없습니다. 파일 위치와 연결된 드라이브를 확인하고 미디어를 다시 연결하세요."
+    } else if detail.starts_with("unsupported media:") || detail.starts_with("unsupported:") {
+        "지원하지 않는 형식이나 설정입니다. 아래 상세 내용을 확인하고 지원되는 형식이나 설정으로 다시 시도하세요."
+    } else if detail.starts_with("decode error:") {
+        "미디어를 해석하지 못했습니다. 원본 파일이 정상적으로 재생되는지와 지원되는 형식인지 확인하세요."
+    } else if detail.starts_with("encode:") {
+        "영상 또는 오디오 인코딩에 실패했습니다. 아래 상세 내용을 확인하고 내보내기 설정을 점검하세요."
+    } else if detail.starts_with("i/o:") || detail.starts_with("i/o error:") {
+        "파일을 읽거나 쓰지 못했습니다. 파일 위치, 폴더 권한과 남은 저장 공간을 확인하세요."
+    } else if detail == "cancelled" {
+        "작업이 취소되었습니다."
+    } else {
+        "작업을 완료하지 못했습니다. 아래 상세 내용을 확인하세요."
+    };
+    format!("{guidance} (상세: {error})")
 }
 
 /// Like [`t`], for an English string that needs a disambiguating `context` (a catalog row whose
@@ -329,6 +386,8 @@ mod tests {
             ("ru", include_str!("ru.tsv")),
             ("fr", include_str!("fr.tsv")),
             ("id", include_str!("id.tsv")),
+            ("zh-tw", include_str!("zh-tw.tsv")),
+            ("ko", include_str!("ko.tsv")),
         ] {
             let (entries, errors) = catalog::parse_entries(text);
             assert!(errors.is_empty(), "{code}: {errors:?}");
@@ -449,6 +508,27 @@ mod tests {
     fn core_menu_labels() -> Vec<String> {
         let (entries, _) = catalog::parse_entries(include_str!("uk.tsv"));
         entries.into_iter().map(|(_, en, _)| en).collect()
+    }
+
+    #[test]
+    fn new_catalogs_cover_existing_translatable_ui() {
+        let app = crate::FilmcraftApp::new(filmcraft_engine::Session::default());
+        let mut keys = dynamic_names();
+        keys.extend(crate::menus::MENUS.into_iter().map(str::to_string));
+        for item in crate::menus::menu_items(&app) {
+            push(&mut keys, &item.label);
+            for path in item.path {
+                push(&mut keys, &path);
+            }
+        }
+        for (_, source) in sources() {
+            keys.extend(tl_literals(&source));
+        }
+        for language in [Language::ZhTw, Language::Ko] {
+            let missing: Vec<_> = keys.iter().filter(|key| translatable(key) && !language.has(key)).collect();
+            assert!(missing.is_empty(), "{}: {missing:#?}", language.code());
+            assert_eq!(language.tr("My clip {n}.mp4"), "My clip {n}.mp4");
+        }
     }
 
     /// Brazilian Portuguese covers the whole interface (the Spanish catalog's entries and the native
@@ -966,9 +1046,12 @@ mod tests {
             assert_eq!(l(&[tag]), Language::ZhCn, "{tag}");
         }
         for tag in ["zh-TW", "zh_TW.UTF-8", "zh-HK", "zh-MO", "zh-Hant", "zh-Hant-TW"] {
-            assert_eq!(l(&[tag]), Language::En, "{tag}: Traditional Chinese has no catalog");
+            assert_eq!(l(&[tag]), if cfg!(target_arch = "wasm32") { Language::En } else { Language::ZhTw }, "{tag}");
         }
-        assert_eq!(l(&["zh-TW", "ja-JP"]), Language::Ja);
+        assert_eq!(l(&["zh-TW", "ja-JP"]), if cfg!(target_arch = "wasm32") { Language::Ja } else { Language::ZhTw });
+        for tag in ["ko", "ko-KR", "ko_KR.UTF-8", "KO-kr"] {
+            assert_eq!(l(&[tag]), if cfg!(target_arch = "wasm32") { Language::En } else { Language::Ko }, "{tag}");
+        }
         for tag in ["de", "DE", "de-DE", "de-AT", "de-CH", "de-LI", "de-LU", "de_DE.UTF-8", "de_AT.UTF-8@euro", "de_CH"] {
             assert_eq!(l(&[tag]), Language::De, "{tag}");
         }

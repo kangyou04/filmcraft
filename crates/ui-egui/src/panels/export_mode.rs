@@ -229,7 +229,7 @@ fn queue_column(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                             (tlf!("Encoding {n}%", n = format!("{:.0}", it["progress"].as_f64().unwrap_or(0.0) * 100.0)) + &super::eta_suffix(it), t.accent)
                         }
                         "done" => (tl!("Done").to_string(), t.render_green),
-                        "failed" => (tlf!("Failed: {e}", e = it["error"].as_str().unwrap_or("")), t.danger),
+                        "failed" => (tlf!("Failed: {e}", e = crate::i18n::error_message(it["error"].as_str().unwrap_or(""))), t.danger),
                         _ => (tl!("Cancelled").to_string(), t.text_faint),
                     };
                     if status == "encoding" {

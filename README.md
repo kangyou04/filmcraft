@@ -1,11 +1,16 @@
-<p align="center">
-  <a href="https://getartcraft.com/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/brand/artcraft-logo-white.svg">
-      <img alt="ArtCraft" src="docs/brand/artcraft-logo.svg" width="200">
-    </picture>
-  </a>
-</p>
+# FilmCraft 비공식 한국어판
+
+Windows x64용 비공식 한국어판입니다. 공식 배포본이 아닙니다.
+FilmCraft 원 제작진과 loeness의 한국어 지원 PR #963을 바탕으로,
+kangyou04가 편집 용어 11개를 개선하고 배포용으로 ArtCraft 로고를 제거했습니다.
+
+[한국어 다운로드와 사용 방법](KOREAN-PREVIEW.md) · [공식 프로젝트](https://github.com/storytold/filmcraft)
+
+**[Windows x64 한글 실행 파일 다운로드](https://github.com/kangyou04/filmcraft/releases/download/v0.7.2-ko.1/FilmCraft-Korean-v0.7.2-ko.1-windows-x64.zip)**
+
+ZIP 전체를 압축 해제하고 `filmcraft.exe`를 실행하면 한국어로 시작합니다.
+추가 한국어 용어 정리, 그래픽 공통 용어, 한국어 효과 검색 별칭과 주요 오류 안내를 포함합니다.
+**[배포 설명·검증 범위·파일 해시](https://github.com/kangyou04/filmcraft/releases/tag/v0.7.2-ko.1)**
 
 
 <h1 align="center">FilmCraft</h1>
@@ -460,7 +465,6 @@ Forks and modified versions must remove them.
 <br>
 
 <p align="center">
-  <a href="https://getartcraft.com/"><img alt="ArtCraft" src="docs/brand/artcraft-mark.svg" width="28"></a><br>
   <sub>Made by the <a href="https://getartcraft.com/">ArtCraft</a> team and community.</sub>
 </p>
 
