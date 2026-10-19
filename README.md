@@ -1,3 +1,9 @@
+# FilmCraft 한국어 커뮤니티 빌드
+
+[Windows x64 다운로드](https://github.com/kangyou04/filmcraft/releases/tag/v0.9.0-ko.1) · [한국어 변경 내용 및 MCP 안내](README-KO.md) · [원본 프로젝트](https://github.com/storytold/filmcraft)
+
+공식 **FilmCraft v0.9.0**과 한국어 카탈로그 원작성자 **CokeRoach**의 작업을 바탕으로 했으며, **kangyou04**가 편집 용어 11개를 개선했습니다. 비공식 Windows x64 커뮤니티 빌드입니다.
+
 <p align="center">
   <a href="https://getartcraft.com/">
     <picture>
